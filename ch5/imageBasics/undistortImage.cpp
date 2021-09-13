@@ -2,6 +2,7 @@
 #include <string>
 using namespace std;
 string image_file = "./distorted.png";
+string image_store_file = "./undistorted.png";
 
 int main(int argc, char **argv){
     // in opencv, can use cv::Undistort() directly
@@ -26,15 +27,27 @@ int main(int argc, char **argv){
             double y_distorted = y * (1 + k1 * r * r + k2 * r * r * r * r) + p1 * (r * r + 2 * y * y) + 2 * p2 * x * y;
             double u_distorted = fx * x_distorted + cx;
             double v_distorted = fy * y_distorted + cy;
-            
 
+            // assign the value (use the near-neighbor interpolation)
+            if(u_distorted >= 0 && v_distorted >= 0 && u_distorted < cols && v_distorted < rows){
+                image_undistort.at<uchar>(v, u) = image.at<uchar>((int) v_distorted, (int) u_distorted);
+            }
+            else{
+                image_undistort.at<uchar>(v, u) = 0;
+            }
         }
-
     }
 
+    // save the image
+    cv::imwrite(image_store_file, image_undistort);
+
+    // print the undistored images
+    // cv::imshow("distorted", image);
+    // cv::imshow("undistored", image_undistort);
+    // cv::waitKey()
 
 
-
+    return 0;
 }
 
 

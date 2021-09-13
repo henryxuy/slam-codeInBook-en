@@ -8,42 +8,41 @@
 using namespace std;
 using namespace Eigen;
 
-// path for left and right images
+// 文件路径
 string left_file = "./left.png";
 string right_file = "./right.png";
 
-// Already written, just need to declare
+// 在pangolin中画图，已写好，无需调整
 void showPointCloud(
     const vector<Vector4d, Eigen::aligned_allocator<Vector4d>> &pointcloud);
 
 int main(int argc, char **argv) {
 
-    // camera intrinsics 
+    // 内参
     double fx = 718.856, fy = 718.856, cx = 607.1928, cy = 185.2157;
-    // baseline
+    // 基线
     double b = 0.573;
 
-    // read the images
+    // 读取图像
     cv::Mat left = cv::imread(left_file, 0);
     cv::Mat right = cv::imread(right_file, 0);
-    // use SGBM (semi-global batch matching) in opencv to calculate the parallex
     cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(
-        0, 96, 9, 8 * 9 * 9, 32 * 9 * 9, 1, 63, 10, 100, 32);    // magic numbers
+        0, 96, 9, 8 * 9 * 9, 32 * 9 * 9, 1, 63, 10, 100, 32);    // 神奇的参数
     cv::Mat disparity_sgbm, disparity;
     sgbm->compute(left, right, disparity_sgbm);
     disparity_sgbm.convertTo(disparity, CV_32F, 1.0 / 16.0f);
 
-    // the result point cloud
+    // 生成点云
     vector<Vector4d, Eigen::aligned_allocator<Vector4d>> pointcloud;
 
-    // If it runs slowly, change u,v into u += 2, v += 2
+    // 如果你的机器慢，请把后面的v++和u++改成v+=2, u+=2
     for (int v = 0; v < left.rows; v++)
         for (int u = 0; u < left.cols; u++) {
             if (disparity.at<float>(v, u) <= 0.0 || disparity.at<float>(v, u) >= 96.0) continue;
 
-            Vector4d point(0, 0, 0, left.at<uchar>(v, u) / 255.0); // (x, y, z, color)
+            Vector4d point(0, 0, 0, left.at<uchar>(v, u) / 255.0); // 前三维为xyz,第四维为颜色
 
-            // (Important) Use the stereo model to calculate the depth and stereo coordinates of the point
+            // 根据双目模型计算 point 的位置
             double x = (u - cx) / fx;
             double y = (v - cy) / fy;
             double depth = fx * b / (disparity.at<float>(v, u));
@@ -56,7 +55,7 @@ int main(int argc, char **argv) {
 
     cv::imshow("disparity", disparity / 96.0);
     cv::waitKey(0);
-    // draw the point cloud
+    // 画出点云
     showPointCloud(pointcloud);
     return 0;
 }

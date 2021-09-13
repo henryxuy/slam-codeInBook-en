@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 
     // 2. loop through the pixels in the image
     // use std::chrono to count the time
-    // can also use iterator in opencv, e.g. MatIterator
+    // can also use iterator in opencv, e.g. MatIterator, Mat_<Vec3b>::iterator
     chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
     for (size_t y = 0; y < image.rows; y++){
         // cv::Mat:ptr to get the row pointer of the image

@@ -9,37 +9,35 @@ using namespace std;
 typedef vector<Sophus::SE3d, Eigen::aligned_allocator<Sophus::SE3d>> TrajectoryType;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 
-// function header for the function to do visualization in Pangolin
+// 在pangolin中画图，已写好，无需调整
 void showPointCloud(
     const vector<Vector6d, Eigen::aligned_allocator<Vector6d>> &pointcloud);
 
 int main(int argc, char **argv) {
-    // use vectors to store images and poses
-    vector<cv::Mat> colorImgs, depthImgs;    // color images and corresponding depth images
-    TrajectoryType poses;         // camera poses
+    vector<cv::Mat> colorImgs, depthImgs;    // 彩色图和深度图
+    TrajectoryType poses;         // 相机位姿
 
     ifstream fin("./pose.txt");
     if (!fin) {
-        cerr << "Please run the program under the directory where ""pose.txt"" is included" << endl;
+        cerr << "请在有pose.txt的目录下运行此程序" << endl;
         return 1;
     }
 
     for (int i = 0; i < 5; i++) {
-        boost::format fmt("./%s/%d.%s"); // the format for the image files
+        boost::format fmt("./%s/%d.%s"); //图像文件格式
         colorImgs.push_back(cv::imread((fmt % "color" % (i + 1) % "png").str()));
-        depthImgs.push_back(cv::imread((fmt % "depth" % (i + 1) % "pgm").str(), -1)); // use -1 to read the original image
+        depthImgs.push_back(cv::imread((fmt % "depth" % (i + 1) % "pgm").str(), -1)); // 使用-1读取原始图像
 
         double data[7] = {0};
         for (auto &d:data)
             fin >> d;
-        // initialize the poses
         Sophus::SE3d pose(Eigen::Quaterniond(data[6], data[3], data[4], data[5]),
                           Eigen::Vector3d(data[0], data[1], data[2]));
         poses.push_back(pose);
     }
 
-    // Compute the point cloud and concat them
-    // the intrinsics for the camera
+    // 计算点云并拼接
+    // 相机内参 
     double cx = 325.5;
     double cy = 253.5;
     double fx = 518.0;
@@ -49,14 +47,14 @@ int main(int argc, char **argv) {
     pointcloud.reserve(1000000);
 
     for (int i = 0; i < 5; i++) {
-        cout << "Converting the image: " << i + 1 << endl;
+        cout << "转换图像中: " << i + 1 << endl;
         cv::Mat color = colorImgs[i];
         cv::Mat depth = depthImgs[i];
         Sophus::SE3d T = poses[i];
         for (int v = 0; v < color.rows; v++)
             for (int u = 0; u < color.cols; u++) {
-                unsigned int d = depth.ptr<unsigned short>(v)[u]; // the depth value
-                if (d == 0) continue; // if depth = 0, meaning the depth has not been measured successfully
+                unsigned int d = depth.ptr<unsigned short>(v)[u]; // 深度值
+                if (d == 0) continue; // 为0表示没有测量到
                 Eigen::Vector3d point;
                 point[2] = double(d) / depthScale;
                 point[0] = (u - cx) * point[2] / fx;
@@ -72,7 +70,7 @@ int main(int argc, char **argv) {
             }
     }
 
-    cout << "Point cloud includes " << pointcloud.size() << " points in all." << endl;
+    cout << "点云共有" << pointcloud.size() << "个点." << endl;
     showPointCloud(pointcloud);
     return 0;
 }
